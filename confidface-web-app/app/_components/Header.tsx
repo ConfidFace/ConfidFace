@@ -1,5 +1,6 @@
 import React from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 
 function Header() {
@@ -9,7 +10,10 @@ function Header() {
         <Image src= {'/logo.svg'} alt='logo' width={40} height={40} />
         <h1 className="text-base font-bold md:text-2xl">ConfidFace</h1>
       </div>
-      <Button>Get Started</Button>
+<Link href="/dashboard">
+  <Button>Get Started</Button>
+</Link>
+
     </nav>
   )
 }
