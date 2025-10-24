@@ -9,6 +9,7 @@ import {
   SignedOut,
   UserButton,
 } from '@clerk/nextjs'
+import { ConvexClientProvider } from "./ConvexClientProvider";
 
 
 
@@ -29,7 +30,7 @@ export default function RootLayout({
       <body
         className={outfit.className}
       >
-        {children}
+        <ConvexClientProvider>{children}</ConvexClientProvider>
       </body>
     </html>
 
