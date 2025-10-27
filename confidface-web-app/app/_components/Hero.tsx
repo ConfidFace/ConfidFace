@@ -65,7 +65,7 @@ function Hero() {
           }}
           className="relative z-10 mt-8 flex flex-wrap items-center justify-center gap-4"
         >
-<Link href="/dashboard">
+<Link href={'/dashboard'}>
   <Button size="lg">Explore Now</Button>
 </Link>
 
