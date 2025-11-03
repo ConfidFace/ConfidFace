@@ -1,3 +1,5 @@
+"use client"
+
 import React from 'react'
 
 import {
@@ -9,23 +11,24 @@ import {
   DialogTrigger,
 } from '../../../components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/tabs'
 
 const CreateInterviewDialog = () => {
   return (
-    <Dialog>
+   <Dialog>
   <DialogTrigger>
-    <Button>+ Create Interview</Button>
+    <Button>+Create Interview</Button>
   </DialogTrigger>
-  <DialogContent>
-    <DialogHeader>
-      <DialogTitle>Please submit following details.</DialogTitle>
-      <DialogDescription>
-        This action cannot be undone. This will permanently delete your account
-        and remove your data from our servers.
-      </DialogDescription>
-    </DialogHeader>
-  </DialogContent>
-</Dialog>
+<DialogContent>
+  <DialogHeader>
+    <DialogTitle>Create a New Interview</DialogTitle>
+    <DialogDescription>
+      නව සම්මුඛ පරීක්ෂණයක් සැලසුම් කිරීමට පහත විස්තර පුරවන්න.
+    </DialogDescription>
+  </DialogHeader>
+  {/* ඔබට ඔබේ interview form එක මෙතනට එකතු කළ හැකිය */}
+</DialogContent>
+</Dialog>  
   )
 }
 
