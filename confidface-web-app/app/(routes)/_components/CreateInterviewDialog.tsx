@@ -22,8 +22,8 @@ import { useUserDetailContext } from "@/app/Provider";
 import { UserDetailContext } from "@/context/UserDetailContext";
 
 function CreateInterviewDialog() {
-  const [formData, setFormData] = useState<any>();
-  const [file, setFile] = useState<File | null>();
+  const [formData, setFormData] = useState<any>({});
+  const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const { userDetail, setUserDetail } = useContext(UserDetailContext);
   const saveInterviewQuestion = useMutation(
@@ -35,14 +35,23 @@ function CreateInterviewDialog() {
   };
 
   const onSubmit = async () => {
-    if (!file) return;
     setLoading(true);
-    const formData = new FormData();
-    formData.append("file", file);
+    const formData_ = new FormData();
+    // Only append the file if one was selected (job description-only flows
+    // should not send an empty string as the file field).
+    if (file) {
+      formData_.append("file", file);
+    }
+    if (formData?.jobTitle) {
+      formData_.append("jobTitle", formData.jobTitle);
+    }
+    if (formData?.jobDescription) {
+      formData_.append("jobDescription", formData.jobDescription);
+    }
     try {
       const res = await axios.post(
         "api/generate-interview-questions",
-        formData
+        formData_
       );
       console.log(res.data);
 
@@ -68,8 +77,10 @@ function CreateInterviewDialog() {
       //@ts-ignore
       const resp = await saveInterviewQuestion({
         questions,
-        resumeUrl: res.data?.resumeUrl,
+        resumeUrl: res.data?.resumeUrl ?? "",
         uid: userDetail?._id,
+        jobTitle: formData?.jobTitle ?? "",
+        jobDescription: formData?.jobDescription ?? "",
       });
       console.log(resp);
     } catch (e) {
@@ -109,7 +120,15 @@ function CreateInterviewDialog() {
           <DialogClose>
             <Button variant={"ghost"}>Cancel</Button>
           </DialogClose>
-          <Button onClick={onSubmit} disabled={loading || !file}>
+          <Button
+            onClick={onSubmit}
+            // Enable submit when loading is false and either a file is present
+            // or the user has provided a job title/description.
+            disabled={
+              loading ||
+              (!file && !formData?.jobTitle && !formData?.jobDescription)
+            }
+          >
             {loading && <Loader2Icon className="animate-spin" />}Submit
           </Button>
         </DialogFooter>
