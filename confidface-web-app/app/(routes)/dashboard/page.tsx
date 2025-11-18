@@ -15,7 +15,7 @@ function Dashboard() {
           <h2 className="text-lg text-gray-500">My Dashboard</h2>
           <h2 className="text-3xl font-bold">Welcome, {user?.fullName} </h2>
         </div>
-     <CreateInterviewDialog/>
+     <CreateInterviewDialog />
       </div>
       {interviewList.length== 0 &&
         <EmptyState />
