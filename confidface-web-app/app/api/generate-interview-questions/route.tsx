@@ -14,67 +14,196 @@ export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File;
+    const jobTitle = formData.get("jobTitle") as string;
+    const jobDescription = formData.get("jobDescription") as string;
+    // Helper: robustly parse questions from the various text shapes the webhook
+    // / model may return. We try several strategies in order:
+    // 1. Strip markdown/code fences and extract a JSON array substring if present
+    // 2. Try parsing the whole text as JSON (array or object containing an array)
+    // 3. Fall back to simple Q/A line parsing
+    const parseQuestionsFromRawText = (raw: any): any[] => {
+      if (!raw) return [];
+      if (Array.isArray(raw)) return raw;
+      if (typeof raw !== "string") return [];
 
-    if (!file) {
-      return NextResponse.json({ error: "No file provided" }, { status: 400 });
+      const original = raw;
+      // Strip common code fences (```json ... ```) and surrounding markdown
+      let t = raw
+        .replace(/```(?:json)?/gi, "")
+        .replace(/```/g, "")
+        .trim();
+
+      // If the model inserted a text prefix/suffix, try to extract the first JSON array
+      const firstArrayMatch = (() => {
+        const start = t.indexOf("[");
+        const end = t.lastIndexOf("]");
+        if (start !== -1 && end !== -1 && end > start) {
+          return t.slice(start, end + 1);
+        }
+        return null;
+      })();
+
+      const candidates = [] as string[];
+      if (firstArrayMatch) candidates.push(firstArrayMatch);
+      candidates.push(t); // try whole text as a last resort
+
+      for (const candidate of candidates) {
+        try {
+          let parsed: any = JSON.parse(candidate);
+          // Handle double-encoded JSON where parsed is a string containing JSON
+          if (typeof parsed === "string") {
+            const trimmed = parsed.trim();
+            if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
+              try {
+                parsed = JSON.parse(parsed);
+              } catch (e) {
+                // leave as string if second parse fails
+              }
+            }
+          }
+
+          // If the parsed value is an array, normalize each element:
+          // - If element is a JSON string, try parsing it into an object
+          // - If element is a plain string, treat it as a question text
+          // - Otherwise return the element as-is (object)
+          if (Array.isArray(parsed)) {
+            const normalized = parsed.map((el: any) => {
+              if (typeof el === "string") {
+                const s = el.trim();
+                if (s.startsWith("{") || s.startsWith("[")) {
+                  try {
+                    return JSON.parse(s);
+                  } catch (e) {
+                    // fall through to treat as plain string
+                  }
+                }
+                return { question: s, answer: null };
+              }
+              return el;
+            });
+            return normalized;
+          }
+
+          // If the parsed value is an object that contains an array of questions,
+          // try common keys
+          if (parsed && typeof parsed === "object") {
+            const arr = parsed.questions ?? parsed.data ?? parsed.items ?? null;
+            if (Array.isArray(arr)) return arr;
+          }
+        } catch (e) {
+          // ignore and continue to next candidate
+        }
+      }
+
+      // If we couldn't JSON-parse, attempt a simple Q/A line-based extraction.
+      // Look for lines starting with Q: / Question: and A: / Answer:
+      const lines = t
+        .split(/\r?\n/)
+        .map((l) => l.trim())
+        .filter(Boolean);
+      const qa: any[] = [];
+      let currentQ: string | null = null;
+      for (const line of lines) {
+        const qMatch = line.match(/^\s*(?:Q|Question)[:\-]\s*(.+)/i);
+        const aMatch = line.match(/^\s*(?:A|Answer)[:\-]\s*(.+)/i);
+        if (qMatch) {
+          currentQ = qMatch[1].trim();
+        } else if (aMatch) {
+          const answer = aMatch[1].trim();
+          qa.push({ question: currentQ, answer });
+          currentQ = null;
+        } else if (!currentQ) {
+          // If no current question, treat the line as a standalone question string
+          qa.push({ question: line, answer: null });
+        } else {
+          // Append to current question (multi-line question)
+          currentQ = (currentQ + " " + line).trim();
+        }
+      }
+
+      if (qa.length) return qa;
+
+      // Last resort: return the original string as single question
+      return [{ question: original, answer: null }];
+    };
+
+    // Perform upload (if file present) and call the webhook accordingly.
+    let uploadUrl: string | null = null;
+    if (file) {
+      console.log("Uploading file, formData: ", formData);
+      const arrayBuffer = await file.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      const uploadResponse = await imagekit.upload({
+        file: buffer,
+        fileName: `upload-${Date.now()}.pdf`,
+        isPrivateFile: false,
+        useUniqueFileName: true,
+      });
+      uploadUrl = uploadResponse?.url ?? null;
     }
-    console.log("file", formData);
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
 
-    const uploadResponse = await imagekit.upload({
-      file: buffer,
-      fileName: `upload-${Date.now()}.pdf`,
-      isPrivateFile: false, //optional
-      useUniqueFileName: true,
-    });
-
-    //call n8n webhook to process the file
     const result = await axios.post(
       "http://localhost:5678/webhook/generate-interview-question",
       {
-        resumeUrl: uploadResponse?.url,
+        resumeUrl: uploadUrl,
+        jobTitle: jobTitle ?? null,
+        jobDescription: jobDescription ?? null,
       }
     );
-    console.log(result.data);
 
-    // The webhook response structure (logged above) shows the questions embedded as
-    // JSON text in: result.data.content.parts[0].text
-    // Extract and parse that into a proper JS array before returning.
-    const rawText = result?.data?.content?.parts?.[0]?.text;
+    console.log("webhook raw response:", result.data);
+    const rawText =
+      result?.data?.content?.parts?.[0]?.text ?? result?.data ?? null;
+    console.log("extracted rawText:", rawText);
 
-    // Normalize parsed questions into an array so the client always receives the
-    // `questions` field (Convex validator requires it).
-    let questionsArray: any[] = [];
-    if (typeof rawText === "string") {
-      try {
-        const parsed = JSON.parse(rawText);
-        if (Array.isArray(parsed)) {
-          questionsArray = parsed;
-        } else {
-          console.warn(
-            "Parsed webhook JSON is not an array, returning empty questions array."
-          );
-        }
-      } catch (e) {
-        console.error("Failed to parse questions JSON text:", e);
+    const parsedArr = parseQuestionsFromRawText(rawText);
+    console.log("parsedArr:", parsedArr);
+
+    // Normalize cases where the model returns a top-level object containing
+    // metadata plus an array under keys like `interview_questions` or `questions`.
+    const extractQAArray = (arr: any[]): any[] => {
+      if (!Array.isArray(arr)) return [];
+
+      // If every element in the array is an object that contains an inner QA array,
+      // flatten them into a single array of QA objects.
+      const hasInner = arr.every(
+        (it) =>
+          it &&
+          (Array.isArray(it.interview_questions) || Array.isArray(it.questions))
+      );
+      if (hasInner) {
+        return arr.flatMap(
+          (it) => it.interview_questions ?? it.questions ?? []
+        );
       }
-    } else if (Array.isArray(rawText)) {
-      questionsArray = rawText;
-    }
 
-    // Re-order each QA object so `question` appears before `answer` when
-    // serialized. Property order doesn't affect semantics, but this makes the
-    // stored documents easier to read in the dashboard.
-    const orderedQuestions = questionsArray.map((q: any) => ({
-      question: q?.question ?? q?.prompt ?? null,
-      answer: q?.answer ?? q?.response ?? null,
+      // If single object with inner array, return that inner array.
+      if (arr.length === 1) {
+        const first = arr[0];
+        if (first && Array.isArray(first.interview_questions))
+          return first.interview_questions;
+        if (first && Array.isArray(first.questions)) return first.questions;
+        if (
+          first &&
+          Array.isArray(first.interview_questions ?? first.questions)
+        )
+          return first.interview_questions ?? first.questions;
+      }
+
+      // Otherwise assume arr itself is the QA array.
+      return arr;
+    };
+
+    const qaArray = extractQAArray(parsedArr);
+    console.log("normalized QA array:", qaArray);
+
+    const orderedQuestions = qaArray.map((q: any) => ({
+      question: q?.question ?? q?.prompt ?? q?.q ?? q?.question_text ?? null,
+      answer: q?.answer ?? q?.response ?? q?.a ?? q?.answer_text ?? null,
     }));
 
-    // Return the normalized questions array (possibly empty) and resumeUrl so the
-    // client can pass both to the Convex mutation.
     return NextResponse.json(
-      { questions: orderedQuestions, resumeUrl: uploadResponse?.url },
+      { questions: orderedQuestions, resumeUrl: uploadUrl },
       { status: 200 }
     );
   } catch (error) {
