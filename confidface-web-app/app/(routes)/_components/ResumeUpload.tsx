@@ -6,8 +6,8 @@ function ResumeUpload({setFiles}:any) {
       
   // const [files, setFiles] = useState<File[]>([]);
   const handleFileUpload = (files: File[]) => {
-    setFiles(files);
-    console.log(files);
+    setFiles(files[0]);
+    
   };
   return (
      <div className="w-full max-w-4xl mx-auto min-h-96 border border-dashed

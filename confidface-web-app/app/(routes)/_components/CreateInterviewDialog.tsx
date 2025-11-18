@@ -20,6 +20,7 @@ function CreateInterviewDialog() {
   
   const [formData, setFormData] = useState<any>();
   const [file,setFile]=useState<File|null>();
+  const [loading,setLoading]=useState(false);
 
   const onHandleInputChange = (field: string, value: string) => {
     setFormData((prev: any) => ({ ...prev, [field]: value }));
@@ -27,6 +28,7 @@ function CreateInterviewDialog() {
 
   const onSubmit=async()=>{
     if(!file) return;
+    setLoading(true);
     const formData = new FormData();
     formData.append('file',file);
     try {
@@ -34,6 +36,8 @@ function CreateInterviewDialog() {
       console.log(res.data);
     } catch (e) {
       console.log(e);
+    }finally{
+      setLoading(false);
     }
   }
 
@@ -60,7 +64,7 @@ function CreateInterviewDialog() {
           <DialogClose>
             <Button variant={'ghost'}>Cancel</Button>
           </DialogClose>
-          <Button onClick={onSubmit}>Submit</Button>
+          <Button onClick={onSubmit} disabled={loading||!file}>Submit</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
