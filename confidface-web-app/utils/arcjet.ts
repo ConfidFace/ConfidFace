@@ -1,6 +1,9 @@
-import arcjet, { detectBot, shield, tokenBucket } from "arcjet";
+// Use the Next.js integration which supplies a default remote client and
+// helpers for Next request adapters. It wraps the core `arcjet` SDK.
+import arcjet, { detectBot, shield, tokenBucket } from "@arcjet/next";
 
 export const aj = arcjet({
+  log: console,
   key: process.env.ARCJET_KEY!, // Get your site key from https://app.arcjet.com
   rules: [
     // Shield protects your app from common attacks e.g. SQL injection
@@ -22,10 +25,10 @@ export const aj = arcjet({
       mode: "LIVE",
       // Tracked by IP address by default, but this can be customized
       // See https://docs.arcjet.com/fingerprints
-      characteristics: ["ip.src"],
+      characteristics: ["userId"],
       refillRate: 5, // Refill 5 tokens per interval
-      interval: 86400, // Refill every 10 seconds
-      capacity: 10, // Bucket capacity of 10 tokens
+      interval: 5000, // Refill every 10 seconds
+      capacity: 5, // Bucket capacity of 10 tokens
     }),
   ],
 });

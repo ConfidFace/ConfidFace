@@ -1,39 +1,33 @@
 import arcjet, { detectBot, shield, tokenBucket } from "@arcjet/next";
 import { isSpoofedBot } from "@arcjet/inspect";
 import { NextResponse } from "next/server";
+import { aj } from "@/utils/arcjet";
 
-const aj = arcjet({
-  key: process.env.ARCJET_KEY!, // Get your site key from https://app.arcjet.com
-  rules: [
-    // Shield protects your app from common attacks e.g. SQL injection
-    shield({ mode: "LIVE" }),
-    // Create a bot detection rule
-    detectBot({
-      mode: "LIVE", // Blocks requests. Use "DRY_RUN" to log only
-      // Block all bots except the following
-      allow: [
-        "CATEGORY:SEARCH_ENGINE", // Google, Bing, etc
-        // Uncomment to allow these other common bot categories
-        // See the full list at https://arcjet.com/bot-list
-        //"CATEGORY:MONITOR", // Uptime monitoring services
-        //"CATEGORY:PREVIEW", // Link previews e.g. Slack, Discord
-      ],
-    }),
-    // Create a token bucket rate limit. Other algorithms are supported.
-    tokenBucket({
-      mode: "LIVE",
-      // Tracked by IP address by default, but this can be customized
-      // See https://docs.arcjet.com/fingerprints
-      characteristics: ["ip.src"],
-      refillRate: 5, // Refill 5 tokens per interval
-      interval: 86400, // Refill every 10 seconds
-      capacity: 10, // Bucket capacity of 10 tokens
-    }),
-  ],
-});
+
 
 export async function GET(req: Request) {
-  const decision = await aj.protect(req, { requested: 5 }); // Deduct 5 tokens from the bucket
+  const userId = "user123";
+
+  // Wrap the Next.js Request into an adapter that provides getBody() as required by ArcjetAdapterContext.
+  const arcjetCtx = {
+    getBody: async () => {
+      try {
+        // clone() may not exist in all runtimes; if available, use it to avoid consuming the original request body
+        const r = typeof (req as any).clone === "function" ? (req as any).clone() : req;
+        const text = await r.text();
+        // return undefined for empty bodies to match Arcjet's expectation of optional body
+        return text === "" ? undefined : text;
+      } catch {
+        return undefined;
+      }
+    },
+    // include some common fields Arcjet might inspect (kept generic)
+    headers: req.headers,
+    method: req.method,
+    url: req.url,
+  };
+
+  const decision = await aj.protect(arcjetCtx as any, { userId, requested: 5 }); // Deduct 5 tokens from the bucket
   console.log("Arcjet decision", decision);
 
   if (decision.isDenied()) {
