@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import ImageKit from "imagekit";
 import axios from "axios";
 import { resume } from "react-dom/server";
+import { currentUser } from "@clerk/nextjs/server";
+import { aj } from "@/utils/arcjet";
+import type { ArcjetAdapterContext } from "arcjet";
 
 //@ts-ignore
 export const imagekit = new ImageKit({
@@ -12,6 +15,7 @@ export const imagekit = new ImageKit({
 
 export async function POST(req: NextRequest) {
   try {
+    const user= await currentUser();
     const formData = await req.formData();
     const file = formData.get("file") as File;
     const jobTitle = formData.get("jobTitle") as string;
@@ -21,6 +25,32 @@ export async function POST(req: NextRequest) {
     // 1. Strip markdown/code fences and extract a JSON array substring if present
     // 2. Try parsing the whole text as JSON (array or object containing an array)
     // 3. Fall back to simple Q/A line parsing
+    // Adapt NextRequest to the Arcjet adapter shape required by aj.protect
+        const arcjetCtx = {
+          getBody: async () => {
+            try {
+              return await req.text();
+            } catch {
+              return undefined;
+            }
+          },
+        } as any;
+        const decision = await aj.protect(arcjetCtx, {
+          userId: user?.primaryEmailAddress?.emailAddress ?? "",
+          requested: 5,
+        }); // Deduct 5 tokens from the bucket
+    console.log("Arcjet decision", decision);
+
+    //@ts-ignore
+    if(decision?.reason?.remaining==0)
+      {
+      return NextResponse.json
+      ({ status:429,
+        result:'No free credit remaining, Try again after 24 hours'
+       }
+      );
+    }
+
     const parseQuestionsFromRawText = (raw: any): any[] => {
       if (!raw) return [];
       if (Array.isArray(raw)) return raw;
@@ -155,6 +185,13 @@ export async function POST(req: NextRequest) {
     const rawText =
       result?.data?.content?.parts?.[0]?.text ?? result?.data ?? null;
     console.log("extracted rawText:", rawText);
+
+    if(result?.data?.status==429)
+    {
+      console.log(result?.data?.result);
+      return ;
+
+    }
 
     const parsedArr = parseQuestionsFromRawText(rawText);
     console.log("parsedArr:", parsedArr);
