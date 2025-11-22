@@ -3,25 +3,24 @@ import { Textarea } from '@/components/ui/textarea'
 import React from 'react'
 
 
-const JobDescription = ({ onHandleInputChange }:any) => {
-
+function JobDescription({ onHandleInputChange }:any) {
 
     return (
         <div>
             <div className='border rounded-2xl p-10'>
                 <label>Job Title</label>
                 <Input
-                    placeholder="e.g. Software Engineer"
-                    onChange={(event: React.ChangeEvent<HTMLInputElement>) => onHandleInputChange('jobTitle', event.currentTarget.value)}
+                    placeholder='e.g. Software Engineer'
+                    onChange={(event) => onHandleInputChange('jobTitle', event.target.value)}
                 />
             </div>
 
             <div className='mt-6'>
                 <label>Job Description</label>
                 <Textarea
-                    placeholder='Enter or paste Job description '
+                    placeholder='Enter or paste Job Description'
                     className='h-[200px]'
-                    onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => onHandleInputChange('jobDescription', event.currentTarget.value)}
+                    onChange={(event) => onHandleInputChange('jobDescription', event.target.value)}
                 />
             </div>
 
