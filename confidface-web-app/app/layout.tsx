@@ -10,6 +10,7 @@ import {
   UserButton,
 } from '@clerk/nextjs'
 import { ConvexClientProvider } from "./ConvexClientProvider";
+import { Toaster } from "@/components/ui/sonner";
 
 
 
@@ -30,7 +31,9 @@ export default function RootLayout({
       <body
         className={outfit.className}
       >
-        <ConvexClientProvider>{children}</ConvexClientProvider>
+        <ConvexClientProvider>{children}
+          <Toaster/>
+        </ConvexClientProvider>
       </body>
     </html>
 
