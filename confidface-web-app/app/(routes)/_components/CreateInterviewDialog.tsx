@@ -20,6 +20,8 @@ import { api } from "@/convex/_generated/api";
 import { useMutation } from "convex/react";
 import { useUserDetailContext } from "@/app/Provider";
 import { UserDetailContext } from "@/context/UserDetailContext";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 function CreateInterviewDialog() {
   const [formData, setFormData] = useState<any>({});
@@ -29,6 +31,7 @@ function CreateInterviewDialog() {
   const saveInterviewQuestion = useMutation(
     api.Interview.SaveInterviewQuestion
   );
+  const router = useRouter();
 
   const onHandleInputChange = (field: string, value: string) => {
     setFormData((prev: any) => ({ ...prev, [field]: value }));
@@ -60,6 +63,7 @@ function CreateInterviewDialog() {
       let questions: any[] = [];
       const raw = res.data?.questions ?? res.data?.data ?? [];
       if (typeof raw === "string") {
+        toast.warning(res?.data?.result)
         try {
           const parsed = JSON.parse(raw);
           if (Array.isArray(parsed)) questions = parsed;
@@ -75,14 +79,16 @@ function CreateInterviewDialog() {
 
       // Always save the interview session (questions may be empty)
       //@ts-ignore
-      const resp = await saveInterviewQuestion({
+      const interviewId = await saveInterviewQuestion({
         questions,
         resumeUrl: res.data?.resumeUrl ?? "",
         uid: userDetail?._id,
         jobTitle: formData?.jobTitle ?? "",
         jobDescription: formData?.jobDescription ?? "",
       });
-      console.log(resp);
+
+      router.push('/interview/'+interviewId);
+     
     } catch (e) {
       console.log(e);
     } finally {
