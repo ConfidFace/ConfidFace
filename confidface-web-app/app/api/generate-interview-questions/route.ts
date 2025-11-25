@@ -172,25 +172,44 @@ export async function POST(req: NextRequest) {
       uploadUrl = uploadResponse?.url ?? null;
     }
 
-    const result = await axios.post(
-      "http://localhost:5678/webhook/generate-interview-question",
-      {
-        resumeUrl: uploadUrl,
-        jobTitle: jobTitle ?? null,
-        jobDescription: jobDescription ?? null,
-      }
-    );
+    const webhookUrl = process.env.WEBHOOK_URL ?? "http://localhost:5678/webhook/generate-interview-question";
+    console.log("Posting to webhook URL:", webhookUrl);
 
-    console.log("webhook raw response:", result.data);
+    const postBody = {
+      resumeUrl: uploadUrl,
+      jobTitle: jobTitle ?? null,
+      jobDescription: jobDescription ?? null,
+    };
+
+    let result: any;
+    try {
+      // Attempt POST without following redirects so we can detect 3xx Location headers
+      result = await axios.post(webhookUrl, postBody, { maxRedirects: 0 });
+    } catch (err: any) {
+      // If a redirect was issued (common for missing trailing slash or http->https), follow it with a POST
+      const resp = err?.response;
+      if (resp && [301, 302, 303, 307, 308].includes(resp.status) && resp.headers && resp.headers.location) {
+        const redirected = resp.headers.location;
+        console.log(`Webhook responded ${resp.status}, redirecting POST to: ${redirected}`);
+        result = await axios.post(redirected, postBody);
+      } else {
+        throw err;
+      }
+    }
+
+    console.log("webhook response status:", result?.status);
+    console.log("webhook response headers:", result?.headers);
+    console.log("webhook raw response:", result?.data);
     const rawText =
       result?.data?.content?.parts?.[0]?.text ?? result?.data ?? null;
     console.log("extracted rawText:", rawText);
 
-    if(result?.data?.status==429)
-    {
+    if (result?.data?.status == 429) {
       console.log(result?.data?.result);
-      return ;
-
+      return NextResponse.json(
+        { error: result?.data?.result ?? "No free credit remaining" },
+        { status: 429 }
+      );
     }
 
     const parsedArr = parseQuestionsFromRawText(rawText);
