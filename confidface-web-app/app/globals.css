@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -119,4 +120,10 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* File upload mask for grid pattern (includes -webkit prefix for compatibility) */
+.file-upload-mask {
+  mask-image: radial-gradient(ellipse at center, white, transparent);
+  -webkit-mask-image: radial-gradient(ellipse at center, white, transparent);
 }

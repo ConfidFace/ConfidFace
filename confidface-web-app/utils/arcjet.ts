@@ -27,7 +27,7 @@ export const aj = arcjet({
       // See https://docs.arcjet.com/fingerprints
       characteristics: ["userId"],
       refillRate: 5, // Refill 5 tokens per interval
-      interval: 5000, // Refill every 10 seconds
+      interval: 5, // Refill every 10 seconds
       capacity: 5, // Bucket capacity of 10 tokens
     }),
   ],
