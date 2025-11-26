@@ -1,48 +1,44 @@
-"use client"
-import { UserDetailContext } from '@/context/UserDetailContext';
-import { api } from '@/convex/_generated/api';
-import { useUser } from '@clerk/nextjs';
-import { useMutation } from 'convex/react';
-import { User } from 'lucide-react';
-import React, { createContext, use, useEffect, useState } from 'react'
+"use client";
+import { UserDetailContext } from "@/context/UserDetailContext";
+import { api } from "@/convex/_generated/api";
+import { useUser } from "@clerk/nextjs";
+import { useMutation } from "convex/react";
+import { User } from "lucide-react";
+import React, { createContext, use, useEffect, useState } from "react";
 
-function Provider({children}:any) {
+function Provider({ children }: any) {
+  const { user } = useUser();
+  const createUserMutation = useMutation(api.users.CreateNewUser);
+  const [userDetail, setUserDetail] = useState<any>(null);
 
-    const {user}= useUser();
-    const CreateUser=useMutation(api.users.CreateNewUser);
-    const [userDetail,setUserDetail]=useState<any>();
-    console.log('user');
-    useEffect(()=>{
-        user&&CreateNewUser();
-    },[user])
-
-
-
-    const CreateNewUser=async ()=>{
-        if (user){
-        const result=await CreateUser({
-            email:user?.primaryEmailAddress?.emailAddress??'',
-            imageUrl:user?.imageUrl,
-            name:user?.fullName??''
-            
-            
-
+  // When Clerk provides a user, ensure a corresponding Convex user exists.
+  useEffect(() => {
+    async function ensureUser() {
+      if (!user) return;
+      try {
+        const result = await createUserMutation({
+          email: user?.primaryEmailAddress?.emailAddress ?? "",
+          imageUrl: user?.imageUrl ?? "",
+          name: user?.fullName ?? "",
         });
-        console.log(result);
+        // `result` should contain the created or existing user document
         setUserDetail(result);
+      } catch (err) {
+        console.error("CreateNewUser failed", err);
+      }
     }
-}
+    ensureUser();
+  }, [user, createUserMutation]);
+
   return (
-    <UserDetailContext.Provider value={{user}}>
-    <div>
-      {children}
-    </div>
+    <UserDetailContext.Provider value={{ userDetail, setUserDetail }}>
+      <div>{children}</div>
     </UserDetailContext.Provider>
-  )
+  );
 }
 
-export default Provider
+export default Provider;
 
-export const useUserDetailContext = () =>{
-    return createContext(UserDetailContext);
-}
+export const useUserDetailContext = () => {
+  return createContext(UserDetailContext);
+};
