@@ -20,6 +20,7 @@
           "field-sizing: content"
         ]
       }
-    ]
+    ],
+    "no-inline-styles": "off"
   }
 }
