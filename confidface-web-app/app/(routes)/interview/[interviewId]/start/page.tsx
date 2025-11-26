@@ -1,8 +1,9 @@
 "use client"
 import { api } from '@/convex/_generated/api';
+import axios from 'axios';
 import { useConvex } from 'convex/react';
 import { useParams } from 'next/navigation';
-import React,  { useEffect, useState } from 'react';
+import React,  { use, useEffect, useState } from 'react';
  
 type interviewData={
   jobTitle:string | null,
@@ -24,6 +25,7 @@ function startInterview() {
     const [interviewData, setInterviewData] = useState<interviewData>();
     useEffect(() => {
         GetInterviewQuestions();
+        
     }, [interviewId]);
         
 
@@ -36,10 +38,24 @@ function startInterview() {
         })
         console.log(result);
         setInterviewData(result);
+        
     }
+
+    useEffect(() => {
+      interviewData && GetKnowledgebase();
+    }, [interviewData]);
+
+
+    const GetKnowledgebase=async()=>{
+        const result=await axios.post('/api/akool-knowledge-base', {
+          questions: interviewData?.interviewQuestions
+        });
+        console.log(result);
+    }
+
   return (
     <div>
-      
+      StartInterview
     </div>
   )
 }
