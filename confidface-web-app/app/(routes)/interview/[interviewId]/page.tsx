@@ -1,10 +1,14 @@
+"use client"
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ArrowRight, Send } from 'lucide-react'
+import Link from 'next/link'
 import Image from 'next/image'
+import { useParams } from 'next/navigation'
 import React from 'react'
 
 function interview() {
+  const {interviewId} = useParams();
   return (
     <div className='flex flex-col justify-center items-center mt-14'>
      <div className='max-w-3xl w-full'>   
@@ -14,12 +18,13 @@ function interview() {
         className='w-full h-[300px] object-cover'
       />
       <div className='p-6 flex flex-col items-center space-y-5'>
-        <h2 className='font-bold text-3xl text-center'>Ready to Start Interview?</h2>
         <p className='text-gray-500 text-center'>
             The interview will last 30 minutes.Are you ready to Start
-            </p>
+        </p>
+        <Link href={'/interview/'+interviewId+'/start'}>
             <Button>Start Interview <ArrowRight/></Button>
-        
+        </Link>
+        <hr />
             <hr />
 
             <div className='p-6 bg-gray-50 rounded-2xl'>

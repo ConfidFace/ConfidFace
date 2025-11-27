@@ -53,7 +53,7 @@ function CreateInterviewDialog() {
     }
     try {
       const res = await axios.post(
-        "api/generate-interview-questions",
+        "/api/generate-interview-questions",
         formData_
       );
       console.log(res.data);
@@ -86,6 +86,14 @@ function CreateInterviewDialog() {
         jobTitle: formData?.jobTitle ?? "",
         jobDescription: formData?.jobDescription ?? "",
       });
+      console.log("saveInterviewQuestion result:", interviewId);
+      if (interviewId) {
+        toast.success("Interview saved");
+        router.push('/interview/'+interviewId);
+        return;
+      } else {
+        toast.error("Failed to save interview session");
+      }
 
       router.push('/interview/'+interviewId);
      
