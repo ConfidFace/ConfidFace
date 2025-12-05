@@ -21,12 +21,10 @@ type interviewQuestions = {
   question: string;
   answer: string;
 };
-type Messages={
-  
-    from:'user' |'bot',
-    text:String
-  
-}
+type Messages = {
+  from: "user" | "bot";
+  text: String;
+};
 
 const CONTAINER_ID = "akool-avatar-container";
 const AVATAR_ID = "dvp_Tristen_cloth2_1080p";
@@ -40,7 +38,7 @@ function startInterview() {
   const [agoraSdk, setAgoraSdk] = useState<GenericAgoraSDK | null>(null);
   const [joined, setJoined] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [messages, setMessages] = useState<Messages[]>()
+  const [messages, setMessages] = useState<Messages[]>([]);
 
   useEffect(() => {
     GetInterviewQuestions();
@@ -75,7 +73,8 @@ function startInterview() {
       onStreamMessage: (uid, message) => {
         console.log("Received message from", uid, ":", message);
         //@ts-ignore
-        message.pld?.text?.length>0&& setMessages((prev:any)=>[...prev,message.pld]);
+        message.pld?.text?.length > 0 &&
+          setMessages((prev: any) => [...prev, message.pld]);
       },
       onException: (error) => {
         console.error("An exception occurred:", error);
@@ -239,23 +238,29 @@ function startInterview() {
       <div className="flex flex-col p-6 lg:w-1/3 h-screen overflow-auto">
         <h2 className="text-lg font-semibold my-4">Conversations</h2>
         <div className="flex-1 border border-gray-200 rounded-xl p-4 space-y-3">
-          {messages?.length==0?
-          <div>
-            <p>No Messages yet</p>
-            </div>
-            :
+          {messages?.length == 0 ? (
             <div>
-              {messages?.map((msg,index)=>(
+              <p>No Messages yet</p>
+            </div>
+          ) : (
+            <div>
+              {messages?.map((msg, index) => (
                 <div key={index}>
-                  <h2 className={`p-3 rounded-lg max-w-[80%] mt-1
-                    ${msg.from=='user'?"bg-blue-100 text-blue-700 self-start":
-                      "bg-green-100 text-green-700 self-end"
+                  <h2
+                    className={`p-3 rounded-lg max-w-[80%] mt-1
+                    ${
+                      msg.from == "user"
+                        ? "bg-blue-100 text-blue-700 self-start"
+                        : "bg-green-100 text-green-700 self-end"
                     }
-                    `}>{msg.text}</h2>
+                    `}
+                  >
+                    {msg.text}
+                  </h2>
                 </div>
               ))}
             </div>
-          }
+          )}
         </div>
       </div>
     </div>
