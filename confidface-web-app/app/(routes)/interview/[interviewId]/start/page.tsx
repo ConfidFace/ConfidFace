@@ -148,6 +148,28 @@ sdk.on({
         setMicOn(true);
         setJoined(true);
 
+<<<<<<< Updated upstream
+=======
+      const Prompt =`You are an interview preparation assistant. 
+            Your task is to help users prepare for job interviews by providing relevant questions and answers based on the job description and title provided by the user.
+            Use the knowledge base to generate accurate and helpful responses.
+            
+            questions:
+            ${JSON.stringify(interviewData?.interviewQuestions.map)}
+            `
+
+      await agoraSdk.sendMessage(Prompt);
+
+
+
+      await agoraSdk.toggleMic();
+      setMicOn(true);
+      setJoined(true);
+    } catch (error) {
+      console.error("Failed to start conversation:", error);
+    } finally {
+      setLoading(false);
+>>>>>>> Stashed changes
     }
 
     const leaveConversation=async()=>{
