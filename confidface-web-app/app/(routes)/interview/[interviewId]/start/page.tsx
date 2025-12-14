@@ -10,12 +10,14 @@ import { Button } from "@/components/ui/button";
 import { User, PhoneCall, PhoneOff, Mic, MicOff } from "lucide-react";
 import { toast } from "sonner";
 
-type interviewData = {
+export type interviewData = {
   jobTitle: string | null;
   jobDescription: string | null;
   interviewQuestions: interviewQuestions[];
   userId: string | null;
   _id: string;
+  resumeUrl: string | null;
+  status: string | null;
 };
 
 type interviewQuestions = {
