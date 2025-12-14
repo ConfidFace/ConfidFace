@@ -15,5 +15,6 @@ export default defineSchema({
     status: v.string(),
     jobTitle: v.union(v.string(), v.null()),
     jobDescription: v.union(v.string(), v.null()),
+    feedback: v.optional(v.any()),
   }),
 });
