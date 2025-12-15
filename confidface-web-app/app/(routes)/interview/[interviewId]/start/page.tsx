@@ -212,7 +212,7 @@ ${JSON.stringify(interviewData?.interviewQuestions?.map)}
 
   return (
     <div className="flex flex-col lg:flex-row w-full min-h-screen bg-gray-50">
-      
+      <Button onClick={GenerateFeedback}>Feedback</Button>
       <div className="flex flex-col items-center py-4 px-6 lg:w-2/3">
         <h2 className="text-2xl font-bold mb-3">Interview Sessions</h2>
         <div
