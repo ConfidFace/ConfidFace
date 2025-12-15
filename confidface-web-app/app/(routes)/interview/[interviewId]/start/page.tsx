@@ -1,20 +1,23 @@
 "use client";
 import { api } from "@/convex/_generated/api";
 import axios from "axios";
-import { useConvex } from "convex/react";
-import { useParams } from "next/navigation";
+import { useConvex, useMutation } from "convex/react";
+import { useParams, useRouter } from "next/navigation";
 import React, { use, useEffect, useRef, useState } from "react";
 import { GenericAgoraSDK } from "akool-streaming-avatar-sdk";
 import { div, video } from "motion/react-client";
 import { Button } from "@/components/ui/button";
 import { User, PhoneCall, PhoneOff, Mic, MicOff } from "lucide-react";
+import { toast } from "sonner";
 
-type interviewData = {
+export type interviewData = {
   jobTitle: string | null;
   jobDescription: string | null;
   interviewQuestions: interviewQuestions[];
   userId: string | null;
   _id: string;
+  resumeUrl: string | null;
+  status: string | null;
 };
 
 type interviewQuestions = {
@@ -28,6 +31,8 @@ type Messages = {
 
 const CONTAINER_ID = "akool-avatar-container";
 const AVATAR_ID = "dvp_Tristen_cloth2_1080p";
+
+const DUMMY_CONVERSATION="[{'from':'bot','text':'Tell me about yourself.'},{'from':'user','text':'I am a React Developer working in IT for the last 7 years.'},{'from':'bot','text':'That\'s great to hear!'},{'from':'bot','text':'Can you explain the role of state in React and how it differs from props?'},{'from':'user','text':'I am working in the IT industry from last seven years.'},{'from':'bot','text':'Thank you for sharing that!'},{'from':'bot','text':'Can you explain the role of state in React and how it differs from props?'},{'from':'user','text':'State is used to manage the state of the React application like setting or getting values.'},{'from':'bot','text':'That\'s a good explanation!'},{'from':'bot','text':'How do you manage form state in a React application?'},{'from':'user','text':'Props are used to send values from one component to another.'},{'from':'bot','text':'Thank you for that clarification!'},{'from':'bot','text':'How do you manage form state in a React application?'},{'from':'user','text':'There are different libraries, but you can manage it using useState.'},{'from':'bot','text':'Great!'},{'from':'bot','text':'Thank you for your insights.'}]"
 function startInterview() {
   const { interviewId } = useParams();
   const convex = useConvex();
@@ -39,6 +44,8 @@ function startInterview() {
   const [joined, setJoined] = useState(false);
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<Messages[]>([]);
+  const updateFeedback = useMutation(api.Interview.UpdateFeedback);
+  const router=useRouter();
 
   useEffect(() => {
     GetInterviewQuestions();
@@ -142,9 +149,7 @@ function startInterview() {
         mode: 2, // 1 for repeat mode, 2 for dialog mode
       });
 
-    
-        try {
-        const Prompt =`You are an interview preparation assistant. 
+      const Prompt = `You are an interview preparation assistant. 
 Your task is to help users prepare for job interviews by providing relevant questions and answers based on the job description and title provided by the user.
 Use the knowledge base to generate accurate and helpful responses.
 
@@ -152,15 +157,14 @@ questions:
 ${JSON.stringify(interviewData?.interviewQuestions?.map)}
 `;
 
-        await agoraSdk.sendMessage(Prompt);
-        await agoraSdk.toggleMic();
-        setMicOn(true);
-        setJoined(true);
-      } catch (error) {
-        console.error("Failed to start conversation:", error);
-      } finally {
-        setLoading(false);
-      }
+      await agoraSdk.sendMessage(Prompt);
+      await agoraSdk.toggleMic();
+      setMicOn(true);
+      setJoined(true);
+    } catch (error) {
+      console.error("Failed to start conversation:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -171,6 +175,8 @@ ${JSON.stringify(interviewData?.interviewQuestions?.map)}
     await agoraSdk.closeStreaming();
     setJoined(false);
     setMicOn(false);
+
+    await GenerateFeedback();
   };
 
   const toggleMic = async () => {
@@ -179,8 +185,33 @@ ${JSON.stringify(interviewData?.interviewQuestions?.map)}
     setMicOn(agoraSdk?.isMicEnabled());
   };
 
+  useEffect(() => {
+    console.log(JSON.stringify(messages));
+  }, [messages]);
+
+  const GenerateFeedback=async()=>{
+    toast.info("Generating Feedback, Please wait...");
+
+    const result = await axios.post('/api/interview-feedback',{
+      messages: DUMMY_CONVERSATION,
+    });
+    console.log(result.data);
+    toast.success("Feedback Generated Successfully!");
+    //Save the feedback
+    const resp=await updateFeedback({
+      feedback:result.data,
+      //@ts-ignore
+      recordId:interviewId
+    });
+    console.log("Feedback saved:", resp);
+    toast.success("Interview Completed Successfully!");
+    //Navigate
+    router.replace('/dashboard');
+  }
+
   return (
     <div className="flex flex-col lg:flex-row w-full min-h-screen bg-gray-50">
+      <Button onClick={GenerateFeedback}>Feedback</Button>
       <div className="flex flex-col items-center py-4 px-6 lg:w-2/3">
         <h2 className="text-2xl font-bold mb-3">Interview Sessions</h2>
         <div

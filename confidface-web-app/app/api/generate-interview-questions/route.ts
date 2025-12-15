@@ -15,7 +15,7 @@ export const imagekit = new ImageKit({
 
 export async function POST(req: NextRequest) {
   try {
-    const user= await currentUser();
+    const user = await currentUser();
     const formData = await req.formData();
     const file = formData.get("file") as File;
     const jobTitle = formData.get("jobTitle") as string;
@@ -26,29 +26,27 @@ export async function POST(req: NextRequest) {
     // 2. Try parsing the whole text as JSON (array or object containing an array)
     // 3. Fall back to simple Q/A line parsing
     // Adapt NextRequest to the Arcjet adapter shape required by aj.protect
-        const arcjetCtx = {
-          getBody: async () => {
-            try {
-              return await req.text();
-            } catch {
-              return undefined;
-            }
-          },
-        } as any;
-        const decision = await aj.protect(arcjetCtx, {
-          userId: user?.primaryEmailAddress?.emailAddress ?? "",
-          requested: 5,
-        }); // Deduct 5 tokens from the bucket
+    const arcjetCtx = {
+      getBody: async () => {
+        try {
+          return await req.text();
+        } catch {
+          return undefined;
+        }
+      },
+    } as any;
+    const decision = await aj.protect(arcjetCtx, {
+      userId: user?.primaryEmailAddress?.emailAddress ?? "",
+      requested: 5,
+    }); // Deduct 5 tokens from the bucket
     console.log("Arcjet decision", decision);
 
     //@ts-ignore
-    if(decision?.reason?.remaining==0)
-      {
-      return NextResponse.json
-      ({ status:429,
-        result:'No free credit remaining, Try again after 24 hours'
-       }
-      );
+    if (decision?.reason?.remaining == 0) {
+      return NextResponse.json({
+        status: 429,
+        result: "No free credit remaining, Try again after 24 hours",
+      });
     }
 
     const parseQuestionsFromRawText = (raw: any): any[] => {
@@ -73,8 +71,18 @@ export async function POST(req: NextRequest) {
         return null;
       })();
 
+      // Some models wrap the array in an assignment (e.g., `interview_questions = [...]`).
+      const assignedArrayMatch = (() => {
+        const m = t.match(
+          /(?:interview_questions|questions)\s*=\s*(\[[\s\S]*?\])/i
+        );
+        return m?.[1] ?? null;
+      })();
+
       const candidates = [] as string[];
       if (firstArrayMatch) candidates.push(firstArrayMatch);
+      if (assignedArrayMatch && assignedArrayMatch !== firstArrayMatch)
+        candidates.push(assignedArrayMatch);
       candidates.push(t); // try whole text as a last resort
 
       for (const candidate of candidates) {
@@ -172,7 +180,9 @@ export async function POST(req: NextRequest) {
       uploadUrl = uploadResponse?.url ?? null;
     }
 
-    const webhookUrl = process.env.WEBHOOK_URL ?? "http://localhost:5678/webhook/generate-interview-question";
+    const webhookUrl =
+      process.env.WEBHOOK_URL ??
+      "http://localhost:5678/webhook/generate-interview-question";
     console.log("Posting to webhook URL:", webhookUrl);
 
     const postBody = {
@@ -188,9 +198,16 @@ export async function POST(req: NextRequest) {
     } catch (err: any) {
       // If a redirect was issued (common for missing trailing slash or http->https), follow it with a POST
       const resp = err?.response;
-      if (resp && [301, 302, 303, 307, 308].includes(resp.status) && resp.headers && resp.headers.location) {
+      if (
+        resp &&
+        [301, 302, 303, 307, 308].includes(resp.status) &&
+        resp.headers &&
+        resp.headers.location
+      ) {
         const redirected = resp.headers.location;
-        console.log(`Webhook responded ${resp.status}, redirecting POST to: ${redirected}`);
+        console.log(
+          `Webhook responded ${resp.status}, redirecting POST to: ${redirected}`
+        );
         result = await axios.post(redirected, postBody);
       } else {
         throw err;
@@ -258,8 +275,17 @@ export async function POST(req: NextRequest) {
       answer: q?.answer ?? q?.response ?? q?.a ?? q?.answer_text ?? null,
     }));
 
+    // Drop entries without a question and limit to the first 5 to match the expected count.
+    const cleanedQuestions = orderedQuestions
+      .filter((q) => typeof q.question === "string" && q.question.trim().length)
+      .slice(0, 5)
+      .map((q) => ({
+        question: q.question.trim(),
+        answer: typeof q.answer === "string" ? q.answer.trim() : null,
+      }));
+
     return NextResponse.json(
-      { questions: orderedQuestions, resumeUrl: uploadUrl },
+      { questions: cleanedQuestions, resumeUrl: uploadUrl },
       { status: 200 }
     );
   } catch (error) {
