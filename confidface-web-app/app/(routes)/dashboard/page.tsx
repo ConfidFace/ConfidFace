@@ -24,13 +24,18 @@ function Dashboard() {
 
   const GetInterviewList = async () => {
     setLoading(true);
-    const result = await convex.query(api.Interview.GetInterviewList,{
-      uid: userDetail?._id
-    });
-    console.log(result);
-    setInterviewList(result);
-    setLoading(false);
-    
+    try {
+      const result = await convex.query(api.Interview.GetInterviewList,{
+        uid: userDetail?._id
+      });
+      console.log(result);
+      setInterviewList(result);
+    } catch (error) {
+      console.error("Failed to load interviews", error);
+      setInterviewList([]);
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
