@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import ImageKit from "imagekit";
 import axios from "axios";
 import { resume } from "react-dom/server";
-import { currentUser } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { aj } from "@/utils/arcjet";
 import type { ArcjetAdapterContext } from "arcjet";
 
@@ -26,6 +26,8 @@ export async function POST(req: NextRequest) {
     // 2. Try parsing the whole text as JSON (array or object containing an array)
     // 3. Fall back to simple Q/A line parsing
     // Adapt NextRequest to the Arcjet adapter shape required by aj.protect
+    const {has}=await auth();
+
         const arcjetCtx = {
           getBody: async () => {
             try {
@@ -41,8 +43,9 @@ export async function POST(req: NextRequest) {
         }); // Deduct 5 tokens from the bucket
     console.log("Arcjet decision", decision);
 
+    const isSubscribedUser=has({ plan: 'pro'})
     //@ts-ignore
-    if(decision?.reason?.remaining==0)
+    if(decision?.reason?.remaining==0 &&!isSubscribedUser)
       {
       return NextResponse.json
       ({ status:429,
