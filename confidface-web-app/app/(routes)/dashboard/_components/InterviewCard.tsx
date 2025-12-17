@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ArrowRight} from 'lucide-react'
 import Link from 'next/link'
+import FeedbackDialog from './FeedbackDialog'
 
 type Props = {
     interviewInfo:interviewData
@@ -18,7 +19,7 @@ function InterviewCard({interviewInfo}: Props) {
       <p className='line-clamp-2 text-gray-500'>{interviewInfo?.resumeUrl?'We generated interview from the uploaded resume.': interviewInfo.jobDescription}</p>
 
         <div className='mt-5 flex justify-between items-center'>
-           {interviewInfo?.feedback && <Button>Feedback</Button> }
+           {interviewInfo?.feedback && <FeedbackDialog feedbackInfo={interviewInfo.feedback} />}
             <Link href={'/interview/'+interviewInfo._id}>         
                 <Button className='' variant={'outline'}>Start Interview <ArrowRight /></Button>
             </Link>

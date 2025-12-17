@@ -9,16 +9,17 @@ import { div, video } from "motion/react-client";
 import { Button } from "@/components/ui/button";
 import { User, PhoneCall, PhoneOff, Mic, MicOff } from "lucide-react";
 import { toast } from "sonner";
+import { FeedbackInfo } from "@/app/(routes)/dashboard/_components/FeedbackDialog";
 
 export type interviewData = {
   jobTitle: string | null;
   jobDescription: string | null;
   interviewQuestions: interviewQuestions[];
-  feedback?: any;
   userId: string | null;
   _id: string;
   resumeUrl: string | null;
   status: string | null;
+  feedback?: FeedbackInfo | null; // added optional feedback field
 };
 
 type interviewQuestions = {
@@ -33,7 +34,7 @@ type Messages = {
 const CONTAINER_ID = "akool-avatar-container";
 const AVATAR_ID = "dvp_Tristen_cloth2_1080p";
 
-const DUMMY_CONVERSATION="[{'from':'bot','text':'Tell me about yourself.'},{'from':'user','text':'I am a React Developer working in IT for the last 7 years.'},{'from':'bot','text':'That\'s great to hear!'},{'from':'bot','text':'Can you explain the role of state in React and how it differs from props?'},{'from':'user','text':'I am working in the IT industry from last seven years.'},{'from':'bot','text':'Thank you for sharing that!'},{'from':'bot','text':'Can you explain the role of state in React and how it differs from props?'},{'from':'user','text':'State is used to manage the state of the React application like setting or getting values.'},{'from':'bot','text':'That\'s a good explanation!'},{'from':'bot','text':'How do you manage form state in a React application?'},{'from':'user','text':'Props are used to send values from one component to another.'},{'from':'bot','text':'Thank you for that clarification!'},{'from':'bot','text':'How do you manage form state in a React application?'},{'from':'user','text':'There are different libraries, but you can manage it using useState.'},{'from':'bot','text':'Great!'},{'from':'bot','text':'Thank you for your insights.'}]"
+// const DUMMY_CONVERSATION="[{'from':'bot','text':'Tell me about yourself.'},{'from':'user','text':'I am a React Developer working in IT for the last 7 years.'},{'from':'bot','text':'That\'s great to hear!'},{'from':'bot','text':'Can you explain the role of state in React and how it differs from props?'},{'from':'user','text':'I am working in the IT industry from last seven years.'},{'from':'bot','text':'Thank you for sharing that!'},{'from':'bot','text':'Can you explain the role of state in React and how it differs from props?'},{'from':'user','text':'State is used to manage the state of the React application like setting or getting values.'},{'from':'bot','text':'That\'s a good explanation!'},{'from':'bot','text':'How do you manage form state in a React application?'},{'from':'user','text':'Props are used to send values from one component to another.'},{'from':'bot','text':'Thank you for that clarification!'},{'from':'bot','text':'How do you manage form state in a React application?'},{'from':'user','text':'There are different libraries, but you can manage it using useState.'},{'from':'bot','text':'Great!'},{'from':'bot','text':'Thank you for your insights.'}]"
 function startInterview() {
   const { interviewId } = useParams();
   const convex = useConvex();
@@ -46,7 +47,7 @@ function startInterview() {
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<Messages[]>([]);
   const updateFeedback = useMutation(api.Interview.UpdateFeedback);
-  const router=useRouter();
+  const router = useRouter();
 
   useEffect(() => {
     GetInterviewQuestions();
@@ -190,29 +191,28 @@ ${JSON.stringify(interviewData?.interviewQuestions?.map)}
     console.log(JSON.stringify(messages));
   }, [messages]);
 
-  const GenerateFeedback=async()=>{
+  const GenerateFeedback = async () => {
     toast.info("Generating Feedback, Please wait...");
 
-    const result = await axios.post('/api/interview-feedback',{
-      messages: DUMMY_CONVERSATION,
+    const result = await axios.post("/api/interview-feedback", {
+      messages: messages,
     });
     console.log(result.data);
     toast.success("Feedback Generated Successfully!");
     //Save the feedback
-    const resp=await updateFeedback({
-      feedback:result.data,
+    const resp = await updateFeedback({
+      feedback: result.data,
       //@ts-ignore
-      recordId:interviewId
+      recordId: interviewId,
     });
     console.log("Feedback saved:", resp);
     toast.success("Interview Completed Successfully!");
     //Navigate
-    router.replace('/dashboard');
-  }
+    router.replace("/dashboard");
+  };
 
   return (
     <div className="flex flex-col lg:flex-row w-full min-h-screen bg-gray-50">
-      <Button onClick={GenerateFeedback}>Feedback</Button>
       <div className="flex flex-col items-center py-4 px-6 lg:w-2/3">
         <h2 className="text-2xl font-bold mb-3">Interview Sessions</h2>
         <div
