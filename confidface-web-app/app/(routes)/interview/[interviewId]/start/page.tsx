@@ -15,7 +15,6 @@ export type interviewData = {
   jobTitle: string | null;
   jobDescription: string | null;
   interviewQuestions: interviewQuestions[];
-  feedback?: any;
   userId: string | null;
   _id: string;
   resumeUrl: string | null;
