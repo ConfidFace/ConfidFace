@@ -12,30 +12,29 @@ export const SaveInterviewQuestion = mutation({
   handler: async (ctx, args) => {
     const result = await ctx.db.insert("InterviewSessionTable", {
       interviewQuestions: args.questions,
-      resumeUrl: args.resumeUrl ??'',
+      resumeUrl: args.resumeUrl ?? "",
       userId: args.uid,
       status: "draft",
-      jobTitle: args.jobTitle ??'',
-      jobDescription: args.jobDescription ??'',
+      jobTitle: args.jobTitle ?? "",
+      jobDescription: args.jobDescription ?? "",
     });
     console.log("Convex inserted InterviewSessionTable id:", result);
     return result;
   },
 });
 
-export const GetInterviewQuestions = query ({
+export const GetInterviewQuestions = query({
   args: {
-    interviewRecordId:v.id("InterviewSessionTable")
+    interviewRecordId: v.id("InterviewSessionTable"),
   },
-  handler:async (ctx,args)=>{
-    const result=await ctx.db.query('InterviewSessionTable')
-        .filter(q=>q.eq(q.field('_id'), args.interviewRecordId))
-        .collect();
+  handler: async (ctx, args) => {
+    const result = await ctx.db
+      .query("InterviewSessionTable")
+      .filter((q) => q.eq(q.field("_id"), args.interviewRecordId))
+      .collect();
     return result[0];
-  }
-
-  
-})
+  },
+});
 
 export const UpdateFeedback = mutation({
   args: {
@@ -43,25 +42,25 @@ export const UpdateFeedback = mutation({
     feedback: v.any(),
   },
   handler: async (ctx, args) => {
-    const result= await ctx.db.patch(args.recordId, {
+    const result = await ctx.db.patch(args.recordId, {
       feedback: args.feedback,
-      status: "completed"
+      status: "completed",
     });
     return result;
-  }
-})
-
-export const GetInterviewList = query ({
-  args: {
-    uid:v.id("UserTable")
   },
-  handler:async (ctx,args)=>{
-    const result=await ctx.db.query('InterviewSessionTable')
-        .filter(q=>q.eq(q.field('userId'), args.uid))
-        .order('desc')
-        .collect();
+});
 
-        
+export const GetInterviewList = query({
+  args: {
+    uid: v.id("UserTable"),
+  },
+  handler: async (ctx, args) => {
+    const result = await ctx.db
+      .query("InterviewSessionTable")
+      .filter((q) => q.eq(q.field("userId"), args.uid))
+      .order("desc")
+      .collect();
+
     return result;
-  }
-})
+  },
+});
